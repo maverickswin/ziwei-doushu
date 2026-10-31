@@ -294,7 +294,55 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 每次 push 与 PR 都会在 GitHub Actions 上跑同一套（见 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)）。
 
-> **注意：开源版不含后端 API 路由。**排盘、命盘展示、合盘起盘都在浏览器里用本仓库的引擎完成，**不需要任何 API Key**。AI 解读（`/api/interpret`）和合盘 AI 分析（`/api/heming`）需要你自己实现接口；没实现之前，这两处会直接提示「开源版不含该接口」，配置 API Key 也不会变成可用（#30 就是这个原因）。
+> **注意：上游开源版不含后端 API 路由，本 fork 已自行实现**（见下一节）。排盘、命盘展示、合盘起盘本来就在浏览器里用本仓库的引擎完成，**不需要任何 API Key**；只有 AI 解读需要 Key。
+
+### 3.1 接入 AI 解读（本 fork 新增）
+
+`/api/interpret`（命盘解读、追问）与 `/api/heming`（双人合盘）已实现，协议是 OpenAI 兼容的流式 Chat Completions。
+
+**配置**（只需两行）：
+
+```bash
+# .env.local
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-你的key
+```
+
+重启 `npm run dev`，然后打开 `/chart` 生成命盘，右侧面板会自动生成「命格总览」；`/heming` 填两个人的出生信息即可合盘。
+
+支持的供应商（`AI_PROVIDER`）：`deepseek`（默认）、`openai`、`mimo`、`ollama`（本地模型，无需 Key），以及任意自定义名 —— 自定义时用通用变量 `AI_BASE_URL` / `AI_MODEL` / `AI_API_KEY` 指定。接口地址要以 `/v1` 结尾（写成完整的 `/chat/completions` 也兼容）。
+
+| 变量 | 作用 | 默认 |
+|------|------|------|
+| `AI_PROVIDER` | 选择预设 | `deepseek` |
+| `AI_BASE_URL` | 覆盖接口地址 | 按预设 |
+| `AI_MODEL` | 覆盖模型名 | 按预设 |
+| `AI_API_KEY` | 覆盖 Key | 按预设 |
+| `AI_MAX_TOKENS` | 单次输出上限 | `2048` |
+| `AI_TEMPERATURE` | 温度 | `0.7` |
+| `AI_TIMEOUT_MS` | 上游超时 | `120000` |
+
+**实现说明**（代码在 `lib/ai/`）：
+
+- 模型不负责排盘。`lib/ai/chart-text.ts` 把引擎算好的十二宫、宫干、星曜亮度、生年/大限/流年四化、自化、空宫借星、命中的格局序列化成结构化文本，模型只做表达。
+- `lib/ai/grounding.ts` 按问题检索仓库自带资料（`lib/classics` 古籍原文、`lib/nihai` 倪师天纪讲义与语录、`heming-knowledge.ts` 夫妻宫断语），作为「只能引用这里的内容」的依据，降低瞎编原文的概率。
+- `lib/ai/prompts.ts` 约束学派口径（三合派，命宫为本三方为用；宫干四化只作辅助）与输出格式：段落标题必须是独占一行的 `**【标题】**`，因为前端 `AiContent` 只认这种写法。
+- 响应是 SSE：`data: {"delta":{"text":"…"}}` → `data: [DONE]`；出错时发 `data: {"error":{"message":"…"}}`，前端会直接把原因显示在对话框里（例如 Key 无效、余额不足、地址写错）。
+- Key 只在服务端读取，浏览器拿不到；路由做了入参校验，前端无法塞入自己的 `system` 消息。
+
+**排盘与对话会保存在本机**：命盘 `ZiweiChart` 快照和整段 AI 对话都存在浏览器 localStorage（`lib/sessions.ts`），重开页面从「最近的排盘」点一下就能恢复命盘和聊天记录，不会重新调模型（不重复花钱）。合盘同理，两位当事人 + 完整分析 + 追问都能恢复。存储上限约 5MB，传入的会话按条数裁剪，写满时自动淘汰最旧的而不是静默丢失。
+
+**不花钱验证链路**：
+
+```bash
+# 终端 1：假上游
+node scripts/mock-ai.mjs 18999
+
+# 终端 2：把 dev server 指过去
+AI_PROVIDER=ollama AI_BASE_URL=http://127.0.0.1:18999/v1 AI_MODEL=mock npm run dev
+```
+
+假上游会把每次请求最终收到的完整提示词写到 `scripts/.mock-captured/req-<n>.json`，方便检查**模型到底看到了什么**。请求 `AI_MODEL=mock-401` 还能演示 Key 错误的提示文案。
 
 ---
 
