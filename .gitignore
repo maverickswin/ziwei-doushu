@@ -1,4 +1,5 @@
 node_modules/
+.npm-cache/
 .next/
 .vercel/
 .env*
@@ -7,3 +8,4 @@ dist/
 *.tsbuildinfo
 .DS_Store
 node_modules
+scripts/.mock-captured/

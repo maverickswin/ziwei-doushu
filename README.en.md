@@ -72,11 +72,18 @@ npm run typecheck    # TypeScript check
 npm test             # charting regression tests
 ```
 
-**No API key is needed for charting.** The open-source version contains **no backend routes**: AI interpretation (`/api/interpret`) and compatibility analysis (`/api/heming`) return 404 until you implement them yourself.
+**No API key is needed for charting.** Upstream ships **no backend routes**; this fork adds them: AI interpretation (`/api/interpret`) and compatibility analysis (`/api/heming`) are implemented in `lib/ai/` against any OpenAI-compatible endpoint. Set two variables in `.env.local` and restart:
+
+```bash
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-...
+```
+
+See the Chinese README section 「3.1 接入 AI 解读」 for provider presets (`openai` / `mimo` / `ollama` / custom), tuning variables, and how to test the streaming pipeline offline with `node scripts/mock-ai.mjs 18999`.
 
 ## What is not included
 
-The interpretation database (`lib/ziwei/db-analysis.ts` is a placeholder), AI prompts, all `/api/*` backend routes, user accounts, payments, and deployment configuration.
+The interpretation database (`lib/ziwei/db-analysis.ts` is a placeholder), the site's own judgment corpus, user accounts, payments, and deployment configuration.
 
 ## Interpretation dataset v4.0 (674,976 charts × 13 topics, 2026-10-15)
 
