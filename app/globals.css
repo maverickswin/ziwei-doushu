@@ -56,10 +56,37 @@
   --r-lg:  16px;
   --r-xl:  24px;
   --r-pill:999px;
+
+  /* ─── 命盘组件语义 token ──────────────────────────────────
+     ChartBoard / PalaceCell / InsightPanel / TimeNav 这些组件写的是 --t-*，
+     但官方设计系统只定义了 --bg/--tx/--ac/--bdr。这里做一层映射，
+     否则 var(--t-bg) 之类全部无效 → 宫格没有底色、没有分隔线、金色强调丢失。 */
+  --t-bg: #FFFFFF;                       /* 宫格底色 */
+  --t-surface: var(--bg-1);              /* 条状容器 */
+  --t-card: #FFFFFF;                     /* 输入框 / 卡片 */
+  --t-border: rgba(0,0,0,0.10);          /* 常规描边 */
+  --t-border-acc: rgba(184,146,42,0.28); /* 金色描边 */
+  --t-grid: rgba(0,0,0,0.18);            /* 十二宫分隔线 */
+  --t-sf: rgba(37,99,235,0.52);          /* 三方四正连线 */
+  --t-sf-fill: rgba(37,99,235,0.05);     /* 三方四正填充 */
+  --t-gold: var(--ac);
+  --t-faint: var(--tx-3);
+  --t-text: var(--tx-0);
+  --t-text1: var(--tx-1);
+  --t-text2: var(--tx-2);
 }
 
 /* ─── 暗色模式 Token 覆盖 ──────────────────────────────── */
 [data-theme="dark"] {
+  --t-bg: #0b1222;
+  --t-surface: rgba(255,255,255,0.05);
+  --t-card: rgba(255,255,255,0.06);
+  --t-border: rgba(255,255,255,0.16);
+  --t-border-acc: rgba(212,168,67,0.34);
+  --t-grid: rgba(255,255,255,0.22);
+  --t-sf: rgba(96,165,250,0.55);
+  --t-sf-fill: rgba(96,165,250,0.06);
+
   --bg-0: #020810;
   --bg-1: #0a1020;
   --bg-2: #141e30;
@@ -128,6 +155,31 @@ body {
 }
 @media (max-width: 768px) {
   .container-page { padding: 0 16px; }
+}
+
+/* 命盘页布局：宽屏「左盘 + 右解读」，窄屏自动单列 */
+.chart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 430px;
+  gap: 24px;
+  margin-top: 16px;
+  align-items: start;
+}
+@media (max-width: 1180px) {
+  .chart-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 玻璃卡片（命盘右侧解读面板、摘要卡等）—— 组件里一直在用，但此前没有定义 */
+.card-glass {
+  background: var(--bg-card);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+[data-theme="dark"] .card-glass {
+  background: rgba(255,255,255,0.035);
+  border-color: rgba(255,255,255,0.10);
 }
 
 /* 卡片 */
